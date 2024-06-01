@@ -1,0 +1,60 @@
+import torch
+from transformers import DistilBertForSequenceClassification, DistilBertTokenizer
+
+# Cargar el tokenizador preentrenado
+tokenizer = DistilBertTokenizer.from_pretrained("distilbert-base-uncased")
+
+# Definir la ruta al modelo guardado
+model_path = "distilbert_model2.pth"
+
+# Crear una nueva instancia del modelo con la misma arquitectura que el modelo guardado
+num_labels = 2  # Ajusta esto al número correcto de clases del modelo guardado
+loaded_model = DistilBertForSequenceClassification.from_pretrained("distilbert-base-uncased", num_labels=num_labels)
+
+
+# Cargar los parámetros guardados en el nuevo modelo
+state_dict = torch.load(model_path)
+
+# Ajustar las dimensiones de los parámetros de la capa clasificadora
+state_dict['classifier.weight'] = state_dict['classifier.weight'][:num_labels, :]
+state_dict['classifier.bias'] = state_dict['classifier.bias'][:num_labels]
+
+# Cargar los parámetros ajustados en el modelo
+loaded_model.load_state_dict(state_dict)
+
+# Modo de evaluación
+loaded_model.eval()
+
+# Texto para inferencia
+new_text = [
+    "The system should delete an author index record",
+    "El sistema permitirá subir a la plataforma, videos, imágenes, texto.",
+    "El Sistema permitirá comentar sobre las publicaciones de otros usuarios.",
+    "El sistema permitirá chatear con otros usuarios e interactuar",
+    "El sistema permitirá crear comunidades donde los usuarios publican sobre un tema en específico.",
+    "El sistema proporcionará la funcionalidad de vincular la cuenta del usuario y sus publicaciones a Drive, facilitando la creación de copias de seguridad de manera eficiente.",
+    "El sistema permitirá notificar de las nuevas publicaciones de los usuarios que sigas.",
+    "El sistema deberá permitir al usuario iniciar sesión, con un correo electrónico y contraseña",
+    "El sistema garantiza la privacidad por medio de contraseñas y validación por dos pasos.",
+    "El sistema contará con un soporte web con un chabot",
+    "El sistema habilitará una función de filtrado avanzado que permitirá a los usuarios buscar establecimiento de entrega basándose en criterios específicos como ubicación, tipo de cocina, valoraciones de clientes y tiempos de entrega estimados.",
+    "El sistema permitirá que los usuarios puedan leer, escribir y responder comentarios sobre los comercios, así como valorar la utilidad de los mismos.",
+    "El sistema enviará notificaciones en tiempo real sobre el estado del pedido, desde la confirmación hasta la entrega.",
+    "El sistema deberá diferenciar entre pedidos, que se refieren a la solicitud de artículos para entrega, y compras, que implican la adquisición de bienes o servicios para su recolección o uso inmediato por parte del usuario.",
+    "El sistema deberá ofrecer descuentos limitados, por tiempo limitado (seguir pensando)"
+]
+
+# Tokenizar el texto y obtener los inputs
+inputs = tokenizer(new_text, return_tensors="pt")
+
+# Realizar la inferencia
+with torch.no_grad():
+    outputs = loaded_model(**inputs)
+
+# Obtener la predicción
+predicted_label_id = torch.argmax(outputs.logits).item()
+predicted_label = "Funcional" if predicted_label_id == 1 else "No funcional"
+
+# Imprimir resultados
+print("Nuevo texto:", new_text)
+print("Predicción:", predicted_label)
